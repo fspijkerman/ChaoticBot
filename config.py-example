@@ -1,0 +1,10 @@
+token = ''
+# https://discordapp.com/oauth2/authorize?&client_id=361911330497757196&scope=bot&permissions=0
+google_oauth = 'oauth-credentials.json'
+wow_api_key = ''
+wow_api_secret = ''
+#spread_id = '13S8KkvAHYRti4yivnbaNolDb8VTYd_RsT_GWULnSimk'
+spread_id = '1iwgTwXHC6q575w7lUVbNksunlHAbzOtVSpdnGF8xA5s'
+spread_public_url = 'https://docs.google.com/spreadsheets/d/1iwgTwXHC6q575w7lUVbNksunlHAbzOtVSpdnGF8xA5s/pubhtml?gid=0&single=true'
+wow_api_url = 'eu.api.battle.net'
+client_id = ''

@@ -1,0 +1,5 @@
+config.py
+**/__pycache__
+chaoticbot.log
+oauth-credentials.json
+venv/*
