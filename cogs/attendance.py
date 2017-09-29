@@ -1,6 +1,7 @@
 from discord.ext import commands
 from discord import Embed, Colour
 from .utils import cache
+from .utils.checks import *
 from .utils.formats import Plural
 import iso8601
 import gspread
@@ -73,6 +74,7 @@ class Attendance(object):
         return None
 
   @commands.command()
+  @commands.guild_only()
   async def wow(self, ctx):
       avatar_img = await self.getAvatar(ctx, 'wildhammer', 'Aart') 
       from .utils.formats import TabularData
@@ -86,6 +88,7 @@ class Attendance(object):
       await ctx.send(fmt)
 
   @commands.command(aliases=['fuzz'])
+  @commands.guild_only()
   async def fuzzy(self, ctx, name : str):
     from fuzzywuzzy import process
     choices = self.getUsers().keys()
@@ -97,6 +100,7 @@ class Attendance(object):
     return process.extractOne(name, choices)
 
   @commands.command()
+  @commands.guild_only()
   async def avatar(self, ctx, realm : str, name : str):
       avatar_img = await self.getAvatar(ctx, realm, name) 
       if avatar_img is None:
@@ -133,6 +137,7 @@ class Attendance(object):
     return self.overview.acell(cell) 
 
   @commands.command()
+  @commands.guild_only()
   async def attnlist(self, ctx, *, entries : str):
     users = self.getUsers()
     eligible = self.getEligible()
@@ -159,6 +164,7 @@ class Attendance(object):
     await ctx.send(embed=e)
 
   @commands.command(aliases=['attn', 'attendence'])
+  @commands.guild_only()
   async def attendance(self, ctx, name : str):
     ''' Attendance '''
 
@@ -200,12 +206,18 @@ class Attendance(object):
 
     if avatar:
       thumbnail_image = avatar
+
     txt_fmt = ''
-    if threshold_needed == "0":
+    if len(threshold_needed) == 0:
+      txt_fmt = 'It is unknown how many raids %s needs. Maybe he\'s not raiding?' % nick
+    elif threshold_needed == "0":
       txt_fmt = '%s can miss **%s** consecutive %s before dropping below the loot threshhold.' % (nick, miss_allow, str(Plural(raid=int(miss_allow))))
     else:
       txt_fmt = '%s needs to join **%s** more consecutive %s to be eligible for loot.' % (nick, threshold_needed, str(Plural(raid=int(threshold_needed))))
 
+    if last_10 == '100%' and last_25 == '100%':
+      nick += ' :trophy:'
+    
     embed=Embed(title="Attendance of %s" % nick, color=color, description=txt_fmt, url=self.bot.config.spread_public_url)
     embed.set_footer(text="Last attendance update was on %s" % last_raid)
     embed.set_thumbnail(url=thumbnail_image)

@@ -10,342 +10,345 @@ import unicodedata
 import inspect
 
 class Prefix(commands.Converter):
-    async def convert(self, ctx, argument):
-        user_id = ctx.bot.user.id
-        if argument.startswith((f'<@{user_id}>', f'<@!{user_id}>')):
-            raise commands.BadArgument('That is a reserved prefix already in use.')
-        return argument
+  async def convert(self, ctx, argument):
+    user_id = ctx.bot.user.id
+    if argument.startswith((f'<@{user_id}>', f'<@!{user_id}>')):
+      raise commands.BadArgument('That is a reserved prefix already in use.')
+    return argument
 
 class Meta:
-    """Commands for utilities related to Discord or the Bot itself."""
+  """Commands for utilities related to Discord or the Bot itself."""
 
-    def __init__(self, bot):
-        self.bot = bot
-        bot.remove_command('help')
+  def __init__(self, bot):
+    self.bot = bot
+    bot.remove_command('help')
 
-    async def __error(self, ctx, error):
-        if isinstance(error, commands.BadArgument):
-            await ctx.send(error)
+  async def __error(self, ctx, error):
+    if isinstance(error, commands.BadArgument):
+      await ctx.send(error)
 
-    @commands.command(name='help')
-    async def _help(self, ctx, *, command: str = None):
-        """Shows help about a command or the bot"""
+  @commands.command(name='help')
+  @checks.is_admin()
+  async def _help(self, ctx, *, command: str = None):
+    """Shows help about a command or the bot"""
 
-        try:
-            if command is None:
-                p = await HelpPaginator.from_bot(ctx)
-            else:
-                entity = self.bot.get_cog(command) or self.bot.get_command(command)
+    try:
+      if command is None:
+        p = await HelpPaginator.from_bot(ctx)
+      else:
+        entity = self.bot.get_cog(command) or self.bot.get_command(command)
 
-                if entity is None:
-                    clean = command.replace('@', '@\u200b')
-                    return await ctx.send(f'Command or category "{clean}" not found.')
-                elif isinstance(entity, commands.Command):
-                    p = await HelpPaginator.from_command(ctx, entity)
-                else:
-                    p = await HelpPaginator.from_cog(ctx, entity)
-
-            await p.paginate()
-        except CannotPaginate as e:
-            await ctx.send(e)
-
-    @commands.command(hidden=True)
-    async def hello(self, ctx):
-        """Displays my intro message."""
-        await ctx.send('Hello! I\'m a robot!')
-
-    @commands.command()
-    async def charinfo(self, ctx, *, characters: str):
-        """Shows you information about a number of characters.
-
-        Only up to 25 characters at a time.
-        """
-
-        if len(characters) > 25:
-            return await ctx.send(f'Too many characters ({len(characters)}/25)')
-
-        def to_string(c):
-            digit = f'{ord(c):x}'
-            name = unicodedata.name(c, 'Name not found.')
-            return f'`\\U{digit:>08}`: {name} - {c} \N{EM DASH} <http://www.fileformat.info/info/unicode/char/{digit}>'
-
-        await ctx.send('\n'.join(map(to_string, characters)))
-
-    @commands.group(name='prefix', invoke_without_command=True)
-    async def prefix(self, ctx):
-        """Manages the server's custom prefixes.
-
-        If called without a subcommand, this will list the currently set
-        prefixes.
-        """
-
-        prefixes = self.bot.get_guild_prefixes(ctx.guild)
-
-        # we want to remove prefix #2, because it's the 2nd form of the mention
-        # and to the end user, this would end up making them confused why the
-        # mention is there twice
-        del prefixes[1]
-
-        e = discord.Embed(title='Prefixes', colour=discord.Colour.blurple())
-        e.set_footer(text=f'{len(prefixes)} prefixes')
-        e.description = '\n'.join(f'{index}. {elem}' for index, elem in enumerate(prefixes, 1))
-        await ctx.send(embed=e)
-
-    @prefix.command(name='add', ignore_extra=False)
-    @checks.is_mod()
-    async def prefix_add(self, ctx, prefix: Prefix):
-        """Appends a prefix to the list of custom prefixes.
-
-        Previously set prefixes are not overridden.
-
-        To have a word prefix, you should quote it and end it with
-        a space, e.g. "hello " to set the prefix to "hello ". This
-        is because Discord removes spaces when sending messages so
-        the spaces are not preserved.
-
-        Multi-word prefixes must be quoted also.
-
-        You must have Manage Server permission to use this command.
-        """
-
-        current_prefixes = self.bot.get_raw_guild_prefixes(ctx.guild.id)
-        current_prefixes.append(prefix)
-        try:
-            await self.bot.set_guild_prefixes(ctx.guild, current_prefixes)
-        except Exception as e:
-            await ctx.send(f'{ctx.tick(False)} {e}')
+        if entity is None:
+          clean = command.replace('@', '@\u200b')
+          return await ctx.send(f'Command or category "{clean}" not found.')
+        elif isinstance(entity, commands.Command):
+          p = await HelpPaginator.from_command(ctx, entity)
         else:
-            await ctx.send(ctx.tick(True))
+          p = await HelpPaginator.from_cog(ctx, entity)
 
-    @prefix_add.error
-    async def prefix_add_error(self, ctx, error):
-        if isinstance(error, commands.TooManyArguments):
-            await ctx.send("You've given too many prefixes. Either quote it or only do it one by one.")
+      await p.paginate()
+    except CannotPaginate as e:
+      await ctx.send(e)
 
-    @prefix.command(name='remove', aliases=['delete'], ignore_extra=False)
-    @checks.is_mod()
-    async def prefix_remove(self, ctx, prefix: Prefix):
-        """Removes a prefix from the list of custom prefixes.
+  @commands.command(hidden=True)
+  async def hello(self, ctx):
+    """Displays my intro message."""
+    await ctx.send('Hello! I\'m a robot!')
 
-        This is the inverse of the 'prefix add' command. You can
-        use this to remove prefixes from the default set as well.
+  @commands.command()
+  async def charinfo(self, ctx, *, characters: str):
+    """Shows you information about a number of characters.
 
-        You must have Manage Server permission to use this command.
-        """
+    Only up to 25 characters at a time.
+    """
 
-        current_prefixes = self.bot.get_raw_guild_prefixes(ctx.guild.id)
+    if len(characters) > 25:
+      return await ctx.send(f'Too many characters ({len(characters)}/25)')
 
-        try:
-            current_prefixes.remove(prefix)
-        except ValueError:
-            return await ctx.send('I do not have this prefix registered.')
+    def to_string(c):
+      digit = f'{ord(c):x}'
+      name = unicodedata.name(c, 'Name not found.')
+      return f'`\\U{digit:>08}`: {name} - {c} \N{EM DASH} <http://www.fileformat.info/info/unicode/char/{digit}>'
 
-        try:
-            await self.bot.set_guild_prefixes(ctx.guild, current_prefixes)
-        except Exception as e:
-            await ctx.send(f'{ctx.tick(False)} {e}')
-        else:
-            await ctx.send(ctx.tick(True))
+    await ctx.send('\n'.join(map(to_string, characters)))
 
-    @prefix.command(name='clear')
-    @checks.is_mod()
-    async def prefix_clear(self, ctx):
-        """Removes all custom prefixes.
+  @commands.group(name='prefix', invoke_without_command=True)
+  async def prefix(self, ctx):
+    """Manages the server's custom prefixes.
 
-        After this, the bot will listen to only mention prefixes.
+    If called without a subcommand, this will list the currently set
+    prefixes.
+    """
 
-        You must have Manage Server permission to use this command.
-        """
+    prefixes = self.bot.get_guild_prefixes(ctx.guild)
 
-        await self.bot.set_guild_prefixes(ctx.guild, [])
-        await ctx.send(ctx.tick(True))
+    # we want to remove prefix #2, because it's the 2nd form of the mention
+    # and to the end user, this would end up making them confused why the
+    # mention is there twice
+    del prefixes[1]
 
-    @commands.command(name='quit', hidden=True)
-    @commands.is_owner()
-    async def _quit(self, ctx):
-        """Quits the bot."""
-        await self.bot.logout()
+    e = discord.Embed(title='Prefixes', colour=discord.Colour.blurple())
+    e.set_footer(text=f'{len(prefixes)} prefixes')
+    e.description = '\n'.join(f'{index}. {elem}' for index, elem in enumerate(prefixes, 1))
+    await ctx.send(embed=e)
 
-    @commands.group(invoke_without_command=True)
-    @commands.guild_only()
-    async def info(self, ctx, *, member: discord.Member = None):
-        """Shows info about a member.
+  @prefix.command(name='add', ignore_extra=False)
+  @checks.is_mod()
+  async def prefix_add(self, ctx, prefix: Prefix):
+    """Appends a prefix to the list of custom prefixes.
 
-        This cannot be used in private messages. If you don't specify
-        a member then the info returned will be yours.
-        """
+    Previously set prefixes are not overridden.
 
-        if member is None:
-            member = ctx.author
+    To have a word prefix, you should quote it and end it with
+    a space, e.g. "hello " to set the prefix to "hello ". This
+    is because Discord removes spaces when sending messages so
+    the spaces are not preserved.
 
-        e = discord.Embed()
-        roles = [role.name.replace('@', '@\u200b') for role in member.roles]
-        shared = sum(1 for m in self.bot.get_all_members() if m.id == member.id)
-        voice = member.voice
-        if voice is not None:
-            vc = voice.channel
-            other_people = len(vc.members) - 1
-            voice = f'{vc.name} with {other_people} others' if other_people else f'{vc.name} by themselves'
-        else:
-            voice = 'Not connected.'
+    Multi-word prefixes must be quoted also.
 
-        e.set_author(name=str(member))
-        e.set_footer(text='Member since').timestamp = member.joined_at
-        e.add_field(name='ID', value=member.id)
-        e.add_field(name='Servers', value=f'{shared} shared')
-        e.add_field(name='Created', value=member.created_at)
-        e.add_field(name='Voice', value=voice)
-        e.add_field(name='Roles', value=', '.join(roles) if len(roles) < 10 else f'{len(roles)} roles')
-        e.colour = member.colour
+    You must have Manage Server permission to use this command.
+    """
 
-        if member.avatar:
-            e.set_thumbnail(url=member.avatar_url)
+    current_prefixes = self.bot.get_raw_guild_prefixes(ctx.guild.id)
+    current_prefixes.append(prefix)
+    try:
+      await self.bot.set_guild_prefixes(ctx.guild, current_prefixes)
+    except Exception as e:
+      await ctx.send(f'{ctx.tick(False)} {e}')
+    else:
+      await ctx.send(ctx.tick(True))
 
-        await ctx.send(embed=e)
+  @prefix_add.error
+  async def prefix_add_error(self, ctx, error):
+    if isinstance(error, commands.TooManyArguments):
+      await ctx.send("You've given too many prefixes. Either quote it or only do it one by one.")
 
-    @info.command(name='server', aliases=['guild'])
-    @commands.guild_only()
-    async def server_info(self, ctx):
-        """Shows info about the current server."""
+  @prefix.command(name='remove', aliases=['delete'], ignore_extra=False)
+  @checks.is_mod()
+  async def prefix_remove(self, ctx, prefix: Prefix):
+    """Removes a prefix from the list of custom prefixes.
 
-        guild = ctx.guild
-        roles = [role.name.replace('@', '@\u200b') for role in guild.roles]
+    This is the inverse of the 'prefix add' command. You can
+    use this to remove prefixes from the default set as well.
 
-        # we're going to duck type our way here
-        class Secret:
-            pass
+    You must have Manage Server permission to use this command.
+    """
 
-        secret_member = Secret()
-        secret_member.id = 0
-        secret_member.roles = [guild.default_role]
+    current_prefixes = self.bot.get_raw_guild_prefixes(ctx.guild.id)
 
-        # figure out what channels are 'secret'
-        secret_channels = 0
-        secret_voice = 0
-        text_channels = 0
-        for channel in guild.channels:
-            perms = channel.permissions_for(secret_member)
-            is_text = isinstance(channel, discord.TextChannel)
-            text_channels += is_text
-            if is_text and not perms.read_messages:
-                secret_channels += 1
-            elif not is_text and (not perms.connect or not perms.speak):
-                secret_voice += 1
+    try:
+      current_prefixes.remove(prefix)
+    except ValueError:
+      return await ctx.send('I do not have this prefix registered.')
 
-        regular_channels = len(guild.channels) - secret_channels
-        voice_channels = len(guild.channels) - text_channels
-        member_by_status = Counter(str(m.status) for m in guild.members)
+    try:
+      await self.bot.set_guild_prefixes(ctx.guild, current_prefixes)
+    except Exception as e:
+      await ctx.send(f'{ctx.tick(False)} {e}')
+    else:
+      await ctx.send(ctx.tick(True))
 
-        e = discord.Embed()
-        e.title = 'Info for ' + guild.name
-        e.add_field(name='ID', value=guild.id)
-        e.add_field(name='Owner', value=guild.owner)
-        if guild.icon:
-            e.set_thumbnail(url=guild.icon_url)
+  @prefix.command(name='clear')
+  @checks.is_mod()
+  async def prefix_clear(self, ctx):
+    """Removes all custom prefixes.
 
-        if guild.splash:
-            e.set_image(url=guild.splash_url)
+    After this, the bot will listen to only mention prefixes.
 
-        info = []
-        info.append(ctx.tick(len(guild.features) >= 3, 'Partnered'))
+    You must have Manage Server permission to use this command.
+    """
 
-        sfw = guild.explicit_content_filter is not discord.ContentFilter.disabled
-        info.append(ctx.tick(sfw, 'Scanning Images'))
-        info.append(ctx.tick(guild.member_count > 100, 'Large'))
+    await self.bot.set_guild_prefixes(ctx.guild, [])
+    await ctx.send(ctx.tick(True))
 
-        e.add_field(name='Info', value='\n'.join(map(str, info)))
+  @commands.command(name='quit', hidden=True)
+  @commands.is_owner()
+  async def _quit(self, ctx):
+    """Quits the bot."""
+    confirm = await ctx.prompt("Are you sure you want to quit the bot?")
+    if confirm:
+      await self.bot.logout()
 
-        fmt = f'Text {text_channels} ({secret_channels} secret)\nVoice {voice_channels} ({secret_voice} locked)'
-        e.add_field(name='Channels', value=fmt)
+  @commands.group(invoke_without_command=True)
+  @commands.guild_only()
+  async def info(self, ctx, *, member: discord.Member = None):
+    """Shows info about a member.
 
-        fmt = f'<:online:316856575413321728> {member_by_status["online"]} ' \
-              f'<:idle:316856575098880002> {member_by_status["idle"]} ' \
-              f'<:dnd:316856574868193281> {member_by_status["dnd"]} ' \
-              f'<:offline:316856575501402112> {member_by_status["offline"]}\n' \
-              f'Total: {guild.member_count}'
+    This cannot be used in private messages. If you don't specify
+    a member then the info returned will be yours.
+    """
 
-        e.add_field(name='Members', value=fmt)
-        e.add_field(name='Roles', value=', '.join(roles) if len(roles) < 10 else f'{len(roles)} roles')
-        e.set_footer(text='Created').timestamp = guild.created_at
-        await ctx.send(embed=e)
+    if member is None:
+      member = ctx.author
 
-    async def say_permissions(self, ctx, member, channel):
-        permissions = channel.permissions_for(member)
-        e = discord.Embed()
-        allowed, denied = [], []
-        for name, value in permissions:
-            name = name.replace('_', ' ').title()
-            if value:
-                allowed.append(name)
-            else:
-                denied.append(name)
+    e = discord.Embed()
+    roles = [role.name.replace('@', '@\u200b') for role in member.roles]
+    shared = sum(1 for m in self.bot.get_all_members() if m.id == member.id)
+    voice = member.voice
+    if voice is not None:
+      vc = voice.channel
+      other_people = len(vc.members) - 1
+      voice = f'{vc.name} with {other_people} others' if other_people else f'{vc.name} by themselves'
+    else:
+      voice = 'Not connected.'
 
-        e.add_field(name='Allowed', value='\n'.join(allowed))
-        e.add_field(name='Denied', value='\n'.join(denied))
-        await ctx.send(embed=e)
+    e.set_author(name=str(member))
+    e.set_footer(text='Member since').timestamp = member.joined_at
+    e.add_field(name='ID', value=member.id)
+    e.add_field(name='Servers', value=f'{shared} shared')
+    e.add_field(name='Created', value=member.created_at)
+    e.add_field(name='Voice', value=voice)
+    e.add_field(name='Roles', value=', '.join(roles) if len(roles) < 10 else f'{len(roles)} roles')
+    e.colour = member.colour
 
-    @commands.command()
-    @commands.guild_only()
-    async def permissions(self, ctx, *, member: discord.Member = None):
-        """Shows a member's permissions.
+    if member.avatar:
+      e.set_thumbnail(url=member.avatar_url)
 
-        You cannot use this in private messages. If no member is given then
-        the info returned will be yours.
-        """
-        channel = ctx.message.channel
-        if member is None:
-            member = ctx.message.author
+    await ctx.send(embed=e)
 
-        await self.say_permissions(ctx, member, channel)
+  @info.command(name='server', aliases=['guild'])
+  @commands.guild_only()
+  async def server_info(self, ctx):
+    """Shows info about the current server."""
 
-    @commands.command()
-    @commands.guild_only()
-    @checks.admin_or_permissions(manage_roles=True)
-    async def botpermissions(self, ctx):
-        """Shows the bot's permissions.
+    guild = ctx.guild
+    roles = [role.name.replace('@', '@\u200b') for role in guild.roles]
 
-        This is a good way of checking if the bot has the permissions needed
-        to execute the commands it wants to execute.
+    # we're going to duck type our way here
+    class Secret:
+      pass
 
-        To execute this command you must have Manage Roles permission.
-        You cannot use this in private messages.
-        """
-        channel = ctx.channel
-        member = ctx.guild.me
-        await self.say_permissions(ctx, member, channel)
+    secret_member = Secret()
+    secret_member.id = 0
+    secret_member.roles = [guild.default_role]
 
-    @commands.command(aliases=['invite'])
-    async def join(self, ctx):
-        """Joins a server."""
-        perms = discord.Permissions.none()
-        perms.read_messages = True
-        perms.external_emojis = True
-        perms.send_messages = True
-        perms.manage_roles = True
-        perms.manage_channels = True
-        perms.ban_members = True
-        perms.kick_members = True
-        perms.manage_messages = True
-        perms.embed_links = True
-        perms.read_message_history = True
-        perms.attach_files = True
-        perms.add_reactions = True
-        await ctx.send(f'<{discord.utils.oauth_url(self.bot.client_id, perms)}>')
+    # figure out what channels are 'secret'
+    secret_channels = 0
+    secret_voice = 0
+    text_channels = 0
+    for channel in guild.channels:
+      perms = channel.permissions_for(secret_member)
+      is_text = isinstance(channel, discord.TextChannel)
+      text_channels += is_text
+      if is_text and not perms.read_messages:
+        secret_channels += 1
+      elif not is_text and (not perms.connect or not perms.speak):
+        secret_voice += 1
 
-    @commands.command(rest_is_raw=True, hidden=True)
-    @commands.is_owner()
-    async def echo(self, ctx, *, content):
-        await ctx.send(content)
+    regular_channels = len(guild.channels) - secret_channels
+    voice_channels = len(guild.channels) - text_channels
+    member_by_status = Counter(str(m.status) for m in guild.members)
 
-    @commands.command(hidden=True)
-    async def cud(self, ctx):
-        """pls no spam"""
+    e = discord.Embed()
+    e.title = 'Info for ' + guild.name
+    e.add_field(name='ID', value=guild.id)
+    e.add_field(name='Owner', value=guild.owner)
+    if guild.icon:
+      e.set_thumbnail(url=guild.icon_url)
 
-        for i in range(3):
-            await ctx.send(3 - i)
-            await asyncio.sleep(1)
+    if guild.splash:
+      e.set_image(url=guild.splash_url)
 
-        await ctx.send('go')
+    info = []
+    info.append(ctx.tick(len(guild.features) >= 3, 'Partnered'))
+
+    sfw = guild.explicit_content_filter is not discord.ContentFilter.disabled
+    info.append(ctx.tick(sfw, 'Scanning Images'))
+    info.append(ctx.tick(guild.member_count > 100, 'Large'))
+
+    e.add_field(name='Info', value='\n'.join(map(str, info)))
+
+    fmt = f'Text {text_channels} ({secret_channels} secret)\nVoice {voice_channels} ({secret_voice} locked)'
+    e.add_field(name='Channels', value=fmt)
+
+    fmt = f'<:online:316856575413321728> {member_by_status["online"]} ' \
+        f'<:idle:316856575098880002> {member_by_status["idle"]} ' \
+        f'<:dnd:316856574868193281> {member_by_status["dnd"]} ' \
+        f'<:offline:316856575501402112> {member_by_status["offline"]}\n' \
+        f'Total: {guild.member_count}'
+
+    e.add_field(name='Members', value=fmt)
+    e.add_field(name='Roles', value=', '.join(roles) if len(roles) < 10 else f'{len(roles)} roles')
+    e.set_footer(text='Created').timestamp = guild.created_at
+    await ctx.send(embed=e)
+
+  async def say_permissions(self, ctx, member, channel):
+    permissions = channel.permissions_for(member)
+    e = discord.Embed()
+    allowed, denied = [], []
+    for name, value in permissions:
+      name = name.replace('_', ' ').title()
+      if value:
+        allowed.append(name)
+      else:
+        denied.append(name)
+
+    e.add_field(name='Allowed', value='\n'.join(allowed))
+    e.add_field(name='Denied', value='\n'.join(denied))
+    await ctx.send(embed=e)
+
+  @commands.command()
+  @commands.guild_only()
+  async def permissions(self, ctx, *, member: discord.Member = None):
+    """Shows a member's permissions.
+
+    You cannot use this in private messages. If no member is given then
+    the info returned will be yours.
+    """
+    channel = ctx.message.channel
+    if member is None:
+      member = ctx.message.author
+
+    await self.say_permissions(ctx, member, channel)
+
+  @commands.command()
+  @commands.guild_only()
+  @checks.admin_or_permissions(manage_roles=True)
+  async def botpermissions(self, ctx):
+    """Shows the bot's permissions.
+
+    This is a good way of checking if the bot has the permissions needed
+    to execute the commands it wants to execute.
+
+    To execute this command you must have Manage Roles permission.
+    You cannot use this in private messages.
+    """
+    channel = ctx.channel
+    member = ctx.guild.me
+    await self.say_permissions(ctx, member, channel)
+
+  @commands.command(aliases=['invite'])
+  async def join(self, ctx):
+    """Joins a server."""
+    perms = discord.Permissions.none()
+    perms.read_messages = True
+    perms.external_emojis = True
+    perms.send_messages = True
+    perms.manage_roles = True
+    perms.manage_channels = True
+    perms.ban_members = True
+    perms.kick_members = True
+    perms.manage_messages = True
+    perms.embed_links = True
+    perms.read_message_history = True
+    perms.attach_files = True
+    perms.add_reactions = True
+    await ctx.send(f'<{discord.utils.oauth_url(self.bot.client_id, perms)}>')
+
+  @commands.command(rest_is_raw=True, hidden=True)
+  @commands.is_owner()
+  async def echo(self, ctx, *, content):
+    await ctx.send(content)
+
+  @commands.command(hidden=True)
+  async def cud(self, ctx):
+    """pls no spam"""
+
+    for i in range(3):
+      await ctx.send(3 - i)
+      await asyncio.sleep(1)
+
+    await ctx.send('go')
 
 def setup(bot):
-    bot.add_cog(Meta(bot))
+  bot.add_cog(Meta(bot))
