@@ -44,7 +44,7 @@ class ChaoticBot(commands.AutoShardedBot):
         traceback.print_exc()
     self.add_command(self.sleep)
 
-  def _command_prefix(ctx, msg):
+  def _command_prefix(self, ctx, msg):
     if msg.content.startswith(tuple(config.allowed_commands)):
       return ['!']
     else:
