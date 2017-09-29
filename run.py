@@ -31,7 +31,7 @@ initial_extensions = [
 
 class ChaoticBot(commands.AutoShardedBot):
   def __init__(self):
-    super().__init__(command_prefix=commands.when_mentioned_or('!'), description="ChaoticBot",
+    super().__init__(command_prefix=self._command_prefix, description="ChaoticBot",
                      pm_help=None, help_attrs=dict(hidden=True))
     self.session = aiohttp.ClientSession(loop=self.loop)
     self.client_id = config.client_id
@@ -43,6 +43,12 @@ class ChaoticBot(commands.AutoShardedBot):
         print(f'Failed to load extension {extension}.', file=sys.stderr)
         traceback.print_exc()
     self.add_command(self.sleep)
+
+  def _command_prefix(ctx, msg):
+    if msg.content.startswith(tuple(config.allowed_commands)):
+      return ['!']
+    else:
+      return ['?']
 
   def _prefix_callable(bot, msg):
     user_id = bot.user.id

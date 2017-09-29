@@ -3,6 +3,7 @@ from discord import Embed, Colour
 from .utils import cache
 from .utils.checks import *
 from .utils.formats import Plural
+from fuzzywuzzy import process
 import iso8601
 import gspread
 import re
@@ -96,7 +97,6 @@ class Attendance(object):
     await ctx.send("%s (%s)" % (rv[0], rv[1]))
 
   def fuzzySearch(self, name : str, choices : list):
-    from fuzzywuzzy import process
     return process.extractOne(name, choices)
 
   @commands.command()

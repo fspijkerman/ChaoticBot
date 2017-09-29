@@ -8,3 +8,4 @@ spread_id = '1iwgTwXHC6q575w7lUVbNksunlHAbzOtVSpdnGF8xA5s'
 spread_public_url = 'https://docs.google.com/spreadsheets/d/1iwgTwXHC6q575w7lUVbNksunlHAbzOtVSpdnGF8xA5s/pubhtml?gid=0&single=true'
 wow_api_url = 'eu.api.battle.net'
 client_id = ''
+allowed_commands = ['!attn', '!attendance', '!attnlist','!party', '!fuzz']
