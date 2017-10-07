@@ -197,7 +197,7 @@ class Attendance(object):
   @commands.command()
   @commands.guild_only()
   async def attnlist(self, ctx, *, entries : str):
-    e = Embed(colour=Colour.blue(), title="Hello! This is the loot eligibility status of the list you gave me:", url=self.bot.config.spread_public_url)
+    e = Embed(colour=Colour.blue(), title="Hello! This is the loot eligibility status of the list you gave me, as of %s:"  % self.db.getLastRaid(), url=self.bot.config.spread_public_url)
     allowed, denied = [], []
     for user in entries.split(';'):
       if user.strip() != "":
