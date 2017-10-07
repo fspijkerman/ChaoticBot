@@ -6,6 +6,7 @@ import inspect
 import textwrap
 from contextlib import redirect_stdout
 import io
+from .utils.checks import *
 
 # to expose to the eval command
 import datetime
@@ -29,7 +30,9 @@ class Admin:
     return content.strip('` \n')
 
   async def __local_check(self, ctx):
-    return await self.bot.is_owner(ctx.author)
+    async def pred(ctx):
+      return await check_guild_permissions(ctx, {'administrator': True})
+    return commands.check(pred)
 
   def get_syntax_error(self, e):
     if e.text is None:
