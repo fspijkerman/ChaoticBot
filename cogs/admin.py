@@ -71,6 +71,7 @@ class Admin:
       await ctx.send('\N{OK HAND SIGN}')
 
   @commands.command(pass_context=True, hidden=True, name='eval')
+  @commands.is_owner()
   async def _eval(self, ctx, *, body: str):
     """Evaluates a code"""
 
