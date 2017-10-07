@@ -22,7 +22,11 @@ class AttendanceDB(object):
     self._db = {}
 
     # Setup background task
-    self.bot.loop.create_task(self.taskUpdate())
+    self._task = self.bot.loop.create_task(self.taskUpdate())
+
+  def unload(self):
+    self._task.cancel()
+    print("Canceled Attendance Update Task")
 
   def keys(self):
     return self._db.keys()
@@ -142,6 +146,9 @@ class Attendance(object):
   def __init__(self, bot):
     self.bot = bot
     self.db = AttendanceDB(bot)
+
+  def __unload(self):
+    self.db.unload()
 
   @commands.command()
   @commands.guild_only()
