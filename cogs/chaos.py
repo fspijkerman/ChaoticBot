@@ -39,7 +39,7 @@ Used to distribute loot with. Without this addon, you're not eligible to receive
 
 Deadly Boss Mods: <https://mods.curse.com/addons/wow/deadly-boss-mods>
 Keeps track of boss mechanics and helps with tactics."""
-
+    
     await ctx.send(a)
 
   @commands.command()
@@ -50,10 +50,10 @@ Keeps track of boss mechanics and helps with tactics."""
       return await ctx.send("""```!addon <addon name>```\n\nReturns information about a specific addon. Possible values:\nFor Angry Assignments: ```!addon aa``` or ```!addon angryassignments```\n```For RCLootCouncil: !addon rclc``` or ```!addon rclootcouncil```""")
 
     if (name == 'aa') or (name == 'angryassignments'):
-      return await ctx.send("```There are only a couple steps required to set up Angry Assignments:\n1. open the window with the command /aa\n2. at the top left corner you'll see the input field \"Highlight\", insert \"Group'\" in here, this will highlight fields like G# when you are in Group#\n3. (optional) Check \"Display Background\", this should make the assignments more visible\n4. At the bottom of the settings you have the Permissions, here you can either check \"Allow All\" or add both Piocc-Wildhammer and Aart-Wildhammer to the list\nDone! :)```")
+      return await ctx.send("***Angry Assignments***\nThere are only a couple steps required to set up Angry Assignments:\n\n_1._ open the window with the command /aa\n_2._ at the top left corner you'll see the input field \"Highlight\", insert \"Group\" in here, this will highlight fields like G# when you are in Group#\n_3._ (optional) Check \"Display Background\", this should make the assignments more visible\n_4._ At the bottom of the settings you have the Permissions, here you can either check \"Allow All\" or add both _Piocc-Wildhammer_ and _Aart-Wildhammer_ to the list\nDone! :smiley:")
 
     if (name == 'rclc') or (name == 'rclootcouncil'):
-      return await ctx.send("```This addon will automatically popup whenever there's loot to distribute, the options available are different for Tier Tokens and \"normal\" loot:\n\nTier Tokens: 4pc | 2pc | Other Item | Normal to HC\nSelect 4pc or 2pc if that item would be the 4th or 2nd respectively, this way we know if you'd be unlocking a set bonus\nOther Item it's for either your 1st, 3rd or 5th+ item. We suggest you put a note in this case like \"3rd\" or \"5th but better combination overall\", \"5th and I can use my BiS legendary\", stuff like that :)\nNormal to HC is self explanatory\n\n\"Normal\" Loot\nMajor | Minor | Major (<70)\nThere's a bit of a debate what kind of upgrade would be Major and what's Minor. Personally, Major is ~7-10% improvement or if said item is my BiS (perfect stats for me) and I could ever only upgrade it with much higher ilvl, Minor is an item I will likely replace in the future.\nMajor (<70) is for people who need the item but don't have the attendance.```")
+      return await ctx.send("***RCLootCouncil***\nThis addon will automatically popup whenever there's loot to distribute, the options available are different for Tier Tokens and \"normal\" loot:\n\n**Tier Tokens**\n_4pc_ | _2pc_ | _Other Item_ | _Normal to HC_\nSelect 4pc or 2pc if that item would be the 4th or 2nd respectively, this way we know if you'd be unlocking a set bonus\nOther Item it's for either your 1st, 3rd or 5th+ item. We suggest you put a note in this case like \"3rd\" or \"5th but better combination overall\", \"5th and I can use my BiS legendary\", stuff like that :)\nNormal to HC is self explanatory\n\n**\"Normal\" Loot**\n_Major_ | _Minor_ | _Major (<70)_\nThere's a bit of a debate what kind of upgrade would be Major and what's Minor. Personally, Major is ~7-10%% improvement or if said item is my BiS (perfect stats for me) and I could ever only upgrade it with much higher ilvl, Minor is an item I will likely replace in the future.\nMajor (<70) is for people who need the item but don't have the attendance.")
 
     raise commands.BadArgument("""Oops! Addon "%s" was not found. Possible values:\nFor Angry Assignments: ```!addon aa``` or ```!addon angryassignments```\n```For RCLootCouncil: !addon rclc``` or ```!addon rclootcouncil```""")
 
