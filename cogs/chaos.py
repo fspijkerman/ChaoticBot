@@ -1,9 +1,21 @@
 # -*- coding: utf-8 -*-
 from discord.ext import commands
+import random as rng
 
 class Chaos(object):
   def __init__(self, bot):
     self.bot = bot
+
+  @commands.command()
+  @commands.guild_only()
+  async def lenny(self, ctx):
+    """Displays a random lenny face."""
+    lenny = rng.choice([
+      "( ͡° ͜ʖ ͡°)", "( ͠° ͟ʖ ͡°)", "ᕦ( ͡° ͜ʖ ͡°)ᕤ", "( ͡~ ͜ʖ ͡°)",
+      "( ͡o ͜ʖ ͡o)", "͡(° ͜ʖ ͡ -)", "( ͡͡ ° ͜ ʖ ͡ °)﻿", "(ง ͠° ͟ل͜ ͡°)ง",
+      "ヽ༼ຈل͜ຈ༽ﾉ"
+    ])
+    await ctx.send(lenny)
 
   @commands.command()
   @commands.guild_only()
