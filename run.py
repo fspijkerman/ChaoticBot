@@ -28,6 +28,7 @@ initial_extensions = [
   'cogs.meta',
   'cogs.attendance',
   'cogs.poll',
+  'cogs.buttons',
 ]
 
 class ChaoticBot(commands.AutoShardedBot):
