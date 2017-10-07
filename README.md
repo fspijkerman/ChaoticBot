@@ -45,3 +45,23 @@ Starting:
 ```
 (venv) $ ./run.py
 ```
+
+## Documentation
+
+### Libraries used
+
+Keep in mind that we're using discord.py's rewrite branch.
+
+```discord.py[voice] (rewrite branch)
+lru_dict
+gspread
+oauth2client
+psutil
+fuzzywuzzy[speedup]```
+
+### Links
+* https://discordpy.readthedocs.io/en/rewrite/
+* https://gspread.readthedocs.io/en/latest/
+* https://docs.python.org/3/library/asyncio.html
+* https://aiohttp-json-api.readthedocs.io/en/latest/
+* https://github.com/seatgeek/fuzzywuzzy
