@@ -6,9 +6,9 @@
 * Python 3.6 or newer
 * virtualenv
 ### Tokens and Keys
-* google oauth token (json file)
-* wow api token / secret
-* discord token
+* google oauth token (json file) [more info here](http://gspread.readthedocs.io/en/latest/oauth2.html)
+* wow api token / secret [more info here](https://dev.battle.net/member/register)
+* discord token [more info here](https://discordpy.readthedocs.io/en/rewrite/discord.html)
 
 ## Installation
 
