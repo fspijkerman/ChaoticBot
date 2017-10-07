@@ -11,7 +11,6 @@ import collections
 import asyncio
 from oauth2client.service_account import ServiceAccountCredentials
 
-Player = collections.namedtuple("Player", ["name", "role"])
 class AttendanceDB(object):
   def __init__(self, bot):
     scope = ['https://spreadsheets.google.com/feeds']
@@ -79,14 +78,14 @@ class AttendanceDB(object):
 
   def mapRole(self, raw_role):
     if 'Tank' in raw_role:
-      return {'role': 'Tank', 'img': 'http://cdn-wow.mmoui.com/images/icons/m143.jpg'}
+      return {'role': raw_role, 'img': 'http://cdn-wow.mmoui.com/images/icons/m143.jpg'}
     if 'DPS' in raw_role:
-      return {'role': 'DPS', 'img': 'http://cdn-wow.mmoui.com/images/icons/m142.jpg'}
+      return {'role': raw_role, 'img': 'http://cdn-wow.mmoui.com/images/icons/m142.jpg'}
     if 'Healer' in raw_role:
-      return {'role': 'Healer', 'img': 'http://cdn-wow.mmoui.com/images/icons/m141.jpg'}
+      return {'role': raw_role, 'img': 'http://cdn-wow.mmoui.com/images/icons/m141.jpg'}
 
   def mapEligible(self, raw):
-    if raw == '✓':
+    if raw == u'\u2713': #  '✓':
       return True
     else:
       return False
