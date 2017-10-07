@@ -9,3 +9,4 @@ spread_public_url = 'https://docs.google.com/spreadsheets/d/1iwgTwXHC6q575w7lUVb
 wow_api_url = 'eu.api.battle.net'
 client_id = ''
 allowed_commands = ['!attn', '!attendance', '!attnlist','!party', '!fuzz']
+update_interval = 60*15 # 15 min

@@ -7,56 +7,149 @@ from fuzzywuzzy import process
 import iso8601
 import gspread
 import re
+import collections
+import asyncio
 from oauth2client.service_account import ServiceAccountCredentials
 
-class Attendance(object):
+Player = collections.namedtuple("Player", ["name", "role"])
+class AttendanceDB(object):
   def __init__(self, bot):
-    self.bot = bot
-
     scope = ['https://spreadsheets.google.com/feeds']
+    self.bot = bot
     self.spread_cred = ServiceAccountCredentials.from_json_keyfile_name(self.bot.config.google_oauth, scope)
     self.spread_auth = gspread.authorize(self.spread_cred)
     self.spread = self.spread_auth.open_by_key(self.bot.config.spread_id)
     self.overview = self.spread.worksheet('Overview')
+    self._db = {}
+
+    # Setup background task
+    self.bot.loop.create_task(self.taskUpdate())
+
+  def keys(self):
+    return self._db.keys()
+
+  async def taskUpdate(self):
+    await self.bot.wait_until_ready()
+    try:
+      while not self.bot.is_closed():
+        print('Updating attendance...')
+        await self.update()
+        print('Done updating attendance...')
+        await asyncio.sleep(self.bot.config.update_interval)
+    except asyncio.CancelledError:
+      pass
+    
+
+  def getLastRaid(self):
+    return self.last_raid
 
   @cache.cache()
-  def getEligible(self):
-    if self.spread_cred.access_token_expired:
-      self.spread_auth.login()
+  async def getAvatar(self, realm, char):
+    resource = 'character/%s/%s' % (realm, char)
+    url = 'https://{0}/wow/{1}'.format(self.bot.config.wow_api_url, resource)
+    params = [('apikey', self.bot.config.wow_api_key)]
 
-    users = {}
-    idx = 3 # Skipping first rows
-    for i in self.spread.worksheet('Overview').col_values('5')[3:]:
-      if i == '':
-        break
-      idx +=1
-      if i == '✓':
-        users[idx] = True
+    async with self.bot.session.get(url, params=params) as resp:
+      if resp.status == 200:
+        avatar_img = 'http://render-eu.worldofwarcraft.com/character/'
+        data = await resp.json()
+        avatar_img += data['thumbnail']
+        return avatar_img
       else:
-        users[idx] = False
-    return users
+        return None
 
-  @cache.cache()
-  def getUsers(self):
-    if self.spread_cred.access_token_expired:
-      self.spread_auth.login()
+  def __getitem__(self, name):
+    if name in self._db:
+      return self._db[name]
+    else:
+      raise AttributeError("No such user: " + name)
 
-    users = {}
-    idx = 3 # Skipping first rows
-    for i in self.spread.worksheet('Overview').col_values('4')[3:]:
-      if i == '':
-        break
-      idx +=1
-      users[i.lower()] = {'name': i, 'col': 4, 'row': idx}
-    return users
+  def search(self, name, fuzzy=False, threshold=70):
+    if fuzzy:
+      result = process.extractOne(name, self._db.keys())
+      if result[1] >= threshold:
+        return self._db[result[0]]
+      else:
+        return None
+    else:
+      if name in self._db:
+        return self._db[name]
+      else:
+        return None
 
   def mapRole(self, raw_role):
-    if 'R16C2' in raw_role:
+    if 'Tank' in raw_role:
       return {'role': 'Tank', 'img': 'http://cdn-wow.mmoui.com/images/icons/m143.jpg'}
-    if 'R17C2' in raw_role:
+    if 'DPS' in raw_role:
       return {'role': 'DPS', 'img': 'http://cdn-wow.mmoui.com/images/icons/m142.jpg'}
-    if 'R18C2' in raw_role:
+    if 'Healer' in raw_role:
       return {'role': 'Healer', 'img': 'http://cdn-wow.mmoui.com/images/icons/m141.jpg'}
+
+  def mapEligible(self, raw):
+    if raw == '✓':
+      return True
+    else:
+      return False
+
+  async def update(self):
+    Player = collections.namedtuple("Player", [
+      "name",
+      "eligible",
+      "role",
+      "last_10",
+      "last_25",
+      "last_all",
+      "last_total",
+      "threshold_needed",
+      "missed_allowed",
+      "role_class",
+      "realm",
+      "avatar",
+    ])
+
+    if self.spread_cred.access_token_expired:
+      self.spread_auth.login()
+    rv = self.overview.get_all_values()
+
+    ''' ['Ranged DPS', '', '', 'Magentatears', '✓', '100%', '100%', '92%', '97.0', '0', '7', 'Mage', 'Wildhammer', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '0.5', '1', '1', '1', '1', '1', '1', '1', '1', '', '', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '', '1', '1', '1', '0.5', '1', '1', '1', '1', '1', '1', '1', '1', '', '1', '1', '1', '1', '1', '1', '0.5', '1', '0.5', '1', '1', '1', '1']
+    '''
+    db = {}
+    for i in rv[3:]:
+      if i[3] == '':
+        break
+      
+      avatar = await self.getAvatar(i[12], i[3])
+      player = Player(
+        role=self.mapRole(i[0]),
+        name=i[3],
+        eligible=self.mapEligible(i[4]),
+        last_10=i[5],
+        last_25=i[6],
+        last_all=i[7],
+        last_total=i[8],
+        threshold_needed=i[9],
+        missed_allowed=i[10],
+        role_class=i[11],
+        realm=i[12],
+        avatar=avatar
+      )
+      db[i[3]] = player
+    self._db = db
+
+    # Update last_raid
+    self.last_raid = self.overview.acell('N3').value
+
+class Attendance(object):
+  def __init__(self, bot):
+    self.bot = bot
+    self.db = AttendanceDB(bot)
+
+  @commands.command()
+  @commands.guild_only()
+  async def update(self, ctx):
+    await ctx.send('Updating cache...')
+    await self.db.update()
+    await ctx.send('Done.')
 
   @cache.cache()
   async def getAvatar(self, ctx, realm, char):
@@ -85,72 +178,36 @@ class Attendance(object):
       render = table.render()
       fmt = f'```\n{render}\n```'
 
-      #await ctx.send("%s" % avatar_img)
       await ctx.send(fmt)
 
   @commands.command(aliases=['fuzz'])
   @commands.guild_only()
   async def fuzzy(self, ctx, name : str):
-    from fuzzywuzzy import process
-    choices = self.getUsers().keys()
-    rv = process.extractOne(name, choices)
-    await ctx.send("%s (%s)" % (rv[0], rv[1]))
-
-  def fuzzySearch(self, name : str, choices : list):
-    return process.extractOne(name, choices)
+    user = self.db.search(name, fuzzy=True, threshold=0)
+    await ctx.send("Found: %s" % user.name)
 
   @commands.command()
   @commands.guild_only()
-  async def avatar(self, ctx, realm : str, name : str):
-      avatar_img = await self.getAvatar(ctx, realm, name) 
+  async def avatar(self, ctx, name : str):
+      avatar_img = self.db[name].avatar
       if avatar_img is None:
         raise commands.BadArgument("Avatar not found")
 
       await ctx.send("%s" % avatar_img)
 
-  @cache.cache()
-  def getSheetRange(self, search : str):
-    '''
-      <Cell R6C1 'Ranged DPS'>
-      <Cell R6C2 ''>
-      <Cell R6C3 ''>
-      <Cell R6C4 'Aart'>
-      <Cell R6C5 '✓'>
-      <Cell R6C6 '100%'>
-      <Cell R6C7 '94%'>
-      <Cell R6C8 '57%'>
-      <Cell R6C9 '58.0'>
-      <Cell R6C10 'Needed'>
-      <Cell R6C11 'MissAllow'>
-      <Cell R6C12 'Hunter'>
-      <Cell R6C13 'realm'>
-    '''
-    if self.spread_cred.access_token_expired:
-      self.spread_auth.login()
-
-    return self.overview.range(search) 
-
-  @cache.cache()
-  def getSheetCell(self, cell : str):
-    if self.spread_cred.access_token_expired:
-      self.spread_auth.login()
-    return self.overview.acell(cell) 
-
   @commands.command()
   @commands.guild_only()
   async def attnlist(self, ctx, *, entries : str):
-    users = self.getUsers()
-    eligible = self.getEligible()
-    e = Embed()
+    e = Embed(colour=Colour.blue(), title="Hello! This is the loot eligibility status of the list you gave me:", url=self.bot.config.spread_public_url)
     allowed, denied = [], []
     for user in entries.split(';'):
       if user.strip() != "":
-        print(":%s:" % user)
-        fuzzy_name = self.fuzzySearch(re.sub('\-.*$','', user).replace('(p)',''), users.keys())
-        if fuzzy_name[1] < 90:
+        db_user = self.db.search(re.sub('\-.*$','', user).replace('(p)',''), fuzzy=True, threshold=90)
+        if db_user is None:
           await ctx.send('User %s not found in the sheet' % user)
+          continue
 
-        if eligible[users[fuzzy_name[0]]['row']]:
+        if db_user.eligible:
           allowed.append(re.sub('\-\w+', '', user)) 
         else:
           denied.append(re.sub('\-\w+', '', user)) 
@@ -158,9 +215,8 @@ class Attendance(object):
     if not denied:
       await ctx.send('Everybody is eligible! :tada:') 
       return
-
-    e.add_field(name='Eligible', value='\n'.join(allowed))
-    e.add_field(name='Not Eligible', value='\n'.join(denied))
+    e.add_field(name=':white_check_mark: Eligible', value='\n'.join(allowed))
+    e.add_field(name=':x: Not Eligible', value='\n'.join(denied))
     await ctx.send(embed=e)
 
   @commands.command(aliases=['attn', 'attendence'])
@@ -170,61 +226,38 @@ class Attendance(object):
 
     if name == 'help':
       return await ctx.send("```!attendance <character>\n\nPlease make sure you use the same character name as registered in the Attendance speadsheet on our website: https://docs.google.com/spreadsheets/d/1iwgTwXHC6q575w7lUVbNksunlHAbzOtVSpdnGF8xA5s/pubhtml?gid=0&single=true```")
+    
+    user = self.db.search(name, True, 60)
+    if not user:
+      raise commands.BadArgument("""Oops! Character "%s" was not found in the Attendance spreadsheet. If you'd rather search manually, here is the link to the spreadsheet: <https://goo.gl/X7LU1x>""" % name)
 
-    users = self.getUsers()
-    if not name.lower() in map(str.lower, users):
-      fuzzy_name = self.fuzzySearch(name, users.keys())
-      if fuzzy_name[1] >= 60:
-        name = fuzzy_name[0]
-      else:
-        raise commands.BadArgument("""Oops! Character "%s" was not found in the Attendance spreadsheet. If you'd rather search manually, here is the link to the spreadsheet: <https://goo.gl/X7LU1x>""" % name)
-      #raise commands.BadArgument('Character "%s" not found in datasheet' % name)
-
-    name = name.lower()
-    data = self.getSheetRange('A%s:M%s' % (users[name]['row'], users[name]['row']))
-
-    color = Colour.red() 
-    loot = data[4].value
-    # u"\u2713"
-    if loot == '✓': color = Colour.green()
-
-    last_update = iso8601.parse_date(self.overview.updated)
-    role = self.mapRole(data[1].input_value)
-    nick = data[3].value
-    last_10 = data[5].value
-    last_25 = data[6].value
-    last_all = data[7].value
-    last_total = data[8].value
-    threshold_needed = data[9].value 
-    miss_allow = data[10].value 
-    realm = data[12].value.lower()
-
-    last_raid = self.getSheetCell('N3').value
-
-    thumbnail_image = role['img']
-    avatar = await self.getAvatar(ctx, realm, name)
-
-    if avatar:
-      thumbnail_image = avatar
+    thumbnail_image = user.role['img']
+    if user.avatar:
+      thumbnail_image = user.avatar
 
     txt_fmt = ''
-    if len(threshold_needed) == 0:
-      txt_fmt = 'It is unknown how many raids %s needs. Maybe he\'s not raiding?' % nick
-    elif threshold_needed == "0":
-      txt_fmt = '%s can miss **%s** consecutive %s before dropping below the loot threshhold.' % (nick, miss_allow, str(Plural(raid=int(miss_allow))))
+    if len(user.threshold_needed) == 0:
+      txt_fmt = 'It is unknown how many raids %s needs. Maybe he\'s not raiding?' % user.name
+    elif user.threshold_needed == "0":
+      txt_fmt = '%s can miss **%s** consecutive %s before dropping below the loot threshhold.' % (user.name, user.missed_allowed, str(Plural(raid=int(user.missed_allowed))))
     else:
-      txt_fmt = '%s needs to join **%s** more consecutive %s to be eligible for loot.' % (nick, threshold_needed, str(Plural(raid=int(threshold_needed))))
+      txt_fmt = '%s needs to join **%s** more consecutive %s to be eligible for loot.' % (user.name, user.threshold_needed, str(Plural(raid=int(user.threshold_needed))))
 
-    if last_10 == '100%' and last_25 == '100%':
-      nick += ' :trophy:'
-    
-    embed=Embed(title="Attendance of %s" % nick, color=color, description=txt_fmt, url=self.bot.config.spread_public_url)
-    embed.set_footer(text="Last attendance update was on %s" % last_raid)
+    color = Colour.red() 
+    if user.eligible:
+      color = Colour.green() 
+
+    throphy = ''
+    if user.last_10 == '100%' and user.last_25 == '100%':
+      throphy = ' :trophy:'
+     
+    embed=Embed(title="Attendance of %s %s" % (user.name, throphy), color=color, description=txt_fmt, url=self.bot.config.spread_public_url)
+    embed.set_footer(text="Last attendance update was on %s" % self.db.getLastRaid())
     embed.set_thumbnail(url=thumbnail_image)
-    embed.add_field(name="Last 10",    value=last_10, inline=True)
-    embed.add_field(name="Last 25",    value=last_25, inline=True)
-    #embed.add_field(name="All raid(s)",   value=last_all, inline=True)
-    #embed.add_field(name="Total points", value=last_total, inline=True)
+    embed.add_field(name="Last 10",    value=user.last_10, inline=True)
+    embed.add_field(name="Last 25",    value=user.last_25, inline=True)
+    #embed.add_field(name="All raid(s)",   value=user.last_all, inline=True)
+    #embed.add_field(name="Total points", value=user.last_total, inline=True)
     await ctx.send(embed=embed)
 
 def setup(bot):

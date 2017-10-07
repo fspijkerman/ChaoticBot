@@ -27,6 +27,7 @@ initial_extensions = [
   'cogs.webhook',
   'cogs.meta',
   'cogs.attendance',
+  'cogs.poll',
 ]
 
 class ChaoticBot(commands.AutoShardedBot):
@@ -109,7 +110,7 @@ class ChaoticBot(commands.AutoShardedBot):
 
 if __name__ == '__main__':
   discord_logger = logging.getLogger('discord')
-  discord_logger.setLevel(logging.DEBUG)
+  discord_logger.setLevel(logging.INFO)
 
   log = logging.getLogger()
   log.setLevel(logging.INFO)
