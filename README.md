@@ -25,7 +25,7 @@ $ source venv/bin/activate
 ```
 $ cp config.py-example config.py
 ```
-Edit the config.py and make you to set the following variables correctly:
+Edit `config.py` and make sure you set the following variables correctly:
 
 * `token` (discord)
 * `client_id` (discord)
