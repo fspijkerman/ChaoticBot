@@ -50,14 +50,16 @@ Starting:
 
 ### Libraries used
 
-Keep in mind that we're using discord.py's rewrite branch.
+Keep in mind that we're using [discord.py's](https://github.com/Rapptz/discord.py/tree/rewrite) rewrite branch.
 
-```discord.py[voice] (rewrite branch)
+```
+discord.py[voice] (rewrite branch)
 lru_dict
 gspread
 oauth2client
 psutil
-fuzzywuzzy[speedup]```
+fuzzywuzzy[speedup]
+```
 
 ### Links
 * https://discordpy.readthedocs.io/en/rewrite/
