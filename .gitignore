@@ -3,3 +3,4 @@ config.py
 chaoticbot.log
 oauth-credentials.json
 venv/*
+.vscode
