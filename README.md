@@ -25,8 +25,14 @@ $ source venv/bin/activate
 ```
 $ cp config.py-example config.py
 ```
+Edit the config.py and make you to set the following variables correctly:
 
-Get the google oauth token and save it with the name `oauth-credentials.json`
+* `token` (discord)
+* `client_id` (discord)
+* `wow_api_key`
+* `wow_api_secret`
+
+Get the google oauth token json file and save it with the name `oauth-credentials.json`
 
 ## Running
 
