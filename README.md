@@ -14,7 +14,7 @@
 
 ```
 $ git clone https://github.com/fspijkerman/ChaoticBot.git
-$ cd discord-bot
+$ cd ChaoticBot
 $ python3 -mvenv venv
 $ source venv/bin/activate
 (venv) $ pip install -r requirements.txt
