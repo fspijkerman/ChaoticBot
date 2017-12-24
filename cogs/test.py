@@ -4,7 +4,7 @@ class Test(object):
   def __init__(self, bot):
     self.bot = bot
 
-  @commands.command()
+  @commands.command(aliases=['test'])
   async def party(self, ctx):
     ''' Test Party! '''
     await ctx.send('bummer!')

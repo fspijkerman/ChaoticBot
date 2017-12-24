@@ -2,7 +2,7 @@ from discord.ext import commands
 from discord import Embed, Colour
 from .utils import cache
 from .utils.checks import *
-from .utils.formats import Plural
+from .utils.formats import Plural, TabularData
 from fuzzywuzzy import process
 import iso8601
 import gspread
@@ -66,6 +66,9 @@ class AttendanceDB(object):
       return self._db[name]
     else:
       raise AttributeError("No such user: " + name)
+
+  def __iter__(self):
+    return self._db.iteritems()
 
   def search(self, name, fuzzy=False, threshold=70):
     if fuzzy:
@@ -173,18 +176,31 @@ class Attendance(object):
       else:
         return None
 
+
+  @commands.command()
+  @commands.guild_only()
+  async def niceword(self, ctsx):
+    table = TabularData()
+    table.set_columns(self.db['Aart']._fields)
+    for data in self.db:
+      table.add_row(data.values())
+
+    render = table.render()
+    fmt = f'```\n{render}\n```'
+    await ctx.send(fmt)
+
   @commands.command()
   @commands.guild_only()
   async def wow(self, ctx):
-      avatar_img = await self.getAvatar(ctx, 'wildhammer', 'Aart') 
-      from .utils.formats import TabularData
-      table = TabularData()
-      table.set_columns(['Test1','Test2','Blaat'])
-      table.add_rows([['1','2','3'],['bla','mekker','pom']])
-      render = table.render()
-      fmt = f'```\n{render}\n```'
+    avatar_img = await self.getAvatar(ctx, 'wildhammer', 'Aart') 
+    
+    table = TabularData()
+    table.set_columns(['Test1','Test2','Blaat'])
+    table.add_rows([['1','2','3'],['bla','mekker','pom']])
+    render = table.render()
+    fmt = f'```\n{render}\n```'
 
-      await ctx.send(fmt)
+    await ctx.send(fmt)
 
   @commands.command(aliases=['fuzz'])
   @commands.guild_only()
