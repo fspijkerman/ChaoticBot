@@ -5,20 +5,27 @@ from .utils.checks import *
 from .utils.formats import Plural, TabularData
 from fuzzywuzzy import process
 import iso8601
-import gspread
 import re
 import collections
 import asyncio
-from oauth2client.service_account import ServiceAccountCredentials
+from apiclient.discovery import build
+from httplib2 import Http
+from oauth2client import file,client,tools
 
 class AttendanceDB(object):
   def __init__(self, bot):
-    scope = ['https://spreadsheets.google.com/feeds']
     self.bot = bot
-    self.spread_cred = ServiceAccountCredentials.from_json_keyfile_name(self.bot.config.google_oauth, scope)
-    self.spread_auth = gspread.authorize(self.spread_cred)
-    self.spread = self.spread_auth.open_by_key(self.bot.config.spread_id)
-    self.overview = self.spread.worksheet('Overview')
+
+    # Google API
+    SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly'
+    store = file.Storage('credentials-store.json')
+    creds = store.get()
+     
+    if not creds or creds.invalid:
+      flow = client.flow_from_clientsecrets('client-credentials.json', SCOPES)
+      creds = tools.run_flow(flow, store)
+    self.sheets = build('sheets', 'v4', http=creds.authorize(Http()))
+
     self._db = {}
 
     # Setup background task
@@ -113,18 +120,22 @@ class AttendanceDB(object):
       "avatar",
     ])
 
-    if self.spread_cred.access_token_expired:
-      self.spread_auth.login()
-    rv = self.overview.get_all_values()
+    RANGE_NAME = 'A4:M'
+    result = self.sheets.spreadsheets().values().get(spreadsheetId=self.bot.config.spread_id, range=RANGE_NAME).execute()
+    values = result.get('values', [])
 
     ''' ['Ranged DPS', '', '', 'Magentatears', '✓', '100%', '100%', '92%', '97.0', '0', '7', 'Mage', 'Wildhammer', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '0.5', '1', '1', '1', '1', '1', '1', '1', '1', '', '', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '', '1', '1', '1', '0.5', '1', '1', '1', '1', '1', '1', '1', '1', '', '1', '1', '1', '1', '1', '1', '0.5', '1', '0.5', '1', '1', '1', '1']
     '''
     db = {}
-    for i in rv[3:]:
-      if i[3] == '':
-        break
+    for i in values:
+      if len(i) == 1: break # last entry
       
       avatar = await self.getAvatar(i[12], i[3])
+
+      # Dirty fix
+      if i[9] == "Loading...": i[9] = "0"
+      if i[10] == "Loading...": i[10] = "0"
+
       player = Player(
         role=self.mapRole(i[0]),
         name=i[3],
@@ -143,7 +154,10 @@ class AttendanceDB(object):
     self._db = db
 
     # Update last_raid
-    self.last_raid = self.overview.acell('N3').value
+    result = self.sheets.spreadsheets().values().get(spreadsheetId=self.bot.config.spread_id, range='N3').execute()
+    values = result.get('values', [])
+    self.last_raid = values[0][0]
+    #self.last_raid = self.overview.acell('N3').value
 
 class Attendance(object):
   def __init__(self, bot):

@@ -6,3 +6,4 @@ psutil
 fuzzywuzzy[speedup]
 lxml
 iso8601
+google-api-python-client
